@@ -15,6 +15,7 @@ Little social network (like Twitter) for musicians.
 - Python 3.9
 
 #### Roadmap
+- Add dockerfile;
 - Add feed to see musicians updates;
 - Add ability to add specific song.
 
@@ -25,7 +26,7 @@ You need to create a virtual environment and after install necessary requirement
 Linux-based os example:
 
 ```
-$ python3 vevn venv
+$ python3 -m venv venv
 
 $ source venv/bin/activate
 
@@ -92,7 +93,42 @@ There is a list of all env variables:
 - SQLALCHEMY_DATABASE_URI
 - SQLALCHEMY_TRACK_MODIFICATIONS (you can pass '0' here)
 
+### Env file
+There is an example of env file that you can create in the same folder and use as a source file 'envs':
+```
+export SQLALCHEMY_DATABASE_URI='mysql://{$db_user}:{$db_password}@{$db_ip/addres}/{$db_name}'
+export SECRET_KEY='{$key_value}'
+export SQLALCHEMY_TRACK_MODIFICATIONS=0
+export ADMINS=['{$example@email.com}']
+export ELASTICSEARCH_URL='{$elastic_url}:{$elastic_port}'
+export ES_ENDPOINT='{$elastic_endpoint}'
+export FLASK_APP=microblog.py
+export FLASK_DEBUG=0
+export MAIL_PASSWORD='{$mail_password}'
+export MAIL_PORT={$mail_port}
+export MAIL_SERVER='smtp.{$email_provider}'
+export MAIL_USE_TLS=1
+export MAIL_USERNAME='{$username/email}'
+export PYTHONUNBUFFERED=1
+```
+Usage:
+```
+$ source envs
+```
+
+## DB configuration
+Before run Flask app you need to set up and configure all database tables. In this project I use alembic as a part of 
+flask framework. All necessary tables I set up as models. For creating tables you need to run commands:
+
+```
+$ flask db init
+
+$ flask db migrate
+
+$ flask db upgrade
+```
  
+
 ## Run Flask
 ```
 $ flask run

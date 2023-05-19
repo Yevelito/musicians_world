@@ -1,0 +1,24 @@
+<table>
+    <tr valign="middle">
+        <td width="150px">
+            <a href="{{ album.link }}" target="_blank" class="badge bg-primary text-wrap" style="width: 20rem;">
+                {{ album.title }} ({{ album.year }})
+            </a>
+        </td>
+
+        {% if album.artist_id == current_user.id %}
+        <td>
+            <a href=" {{ url_for('main.edit_album', album_id=album.id) }} " class="btn btn-outline-success btn-sm">
+                {{ _('Edit') }} </a>
+        </td>
+        <td>
+            <a href=" {{ url_for('main.delete_album', album_id=album.id) }} " class="btn btn-outline-danger btn-sm">
+                {{ _('Delete') }} </a>
+        </td>
+        {% endif %}
+        {% for song in songs %}
+        {% include '_song.html' %}
+        {% endfor %}
+    </tr>
+</table>
+

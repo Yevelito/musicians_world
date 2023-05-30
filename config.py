@@ -25,5 +25,3 @@ class Config(object):
 
     LANGUAGES = ['en', 'ru']
 
-    ELASTICSEARCH_URL = os.environ.get('ES_ENDPOINT')
-

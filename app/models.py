@@ -13,18 +13,29 @@ from app.email import send_email
 
 from app.search import add_to_index, remove_from_index, query_index
 
+from sqlalchemy import text
+
 
 class SearchableMixin(object):
     @classmethod
     def search(cls, expression, page, per_page):
-        ids, total = query_index(cls.__tablename__, expression, page, per_page)
-        if total == 0:
-            return cls.query.filter_by(id=0), 0
+        ids = []
+        query = text(f"SELECT id FROM {cls.Album} WHERE MATCH ('title') AGAINST (:expression IN BOOLEAN MODE)")
+        query = query.bindparams(expression=expression)
+        result = db.engine.execute(query)
+
+        for row in result:
+            ids.append(row[0])
+
         when = []
         for i in range(len(ids)):
             when.append((ids[i], i))
-        return cls.query.filter(cls.id.in_(ids)).order_by(
-            db.case(when, value=cls.id)), total
+
+        total = len(ids)
+        query = cls.query.filter(cls.id.in_(ids)).order_by(db.case(when, value=cls.id))
+        paginated_query = query.paginate(page, per_page, False)
+
+        return paginated_query.items, total
 
     @classmethod
     def before_commit(cls, session):
@@ -52,9 +63,6 @@ class SearchableMixin(object):
         for obj in cls.query:
             add_to_index(cls.__tablename__, obj)
 
-
-db.event.listen(db.session, 'before_commit', SearchableMixin.before_commit)
-db.event.listen(db.session, 'after_commit', SearchableMixin.after_commit)
 
 
 followers = db.Table('followers',
@@ -133,7 +141,7 @@ class User(UserMixin, db.Model):
         return User.query.get(id)
 
 
-class Album(SearchableMixin, db.Model):
+class Album(db.Model):
     __searchable__ = ['title']
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(140))
@@ -147,8 +155,18 @@ class Album(SearchableMixin, db.Model):
         return '<Album {}({})>'.format(self.title, self.year)
 
 
+
+    @staticmethod
+    def search(query, page, per_page):
+        search_results = Album.query.filter(Album.title.like(f'%{query}%')).paginate(page, per_page, False)
+
+        albums = search_results.items
+        total = search_results.total
+
+        return albums, total
+
+
 class Song(db.Model):
-    __searchable__ = ['title']
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(140))
     link = db.Column(db.String(500))

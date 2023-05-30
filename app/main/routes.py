@@ -16,12 +16,13 @@ from app.main.forms import EditProfileForm, AddAlbumForm, EditAlbumForm
 from app.models import User, Album
 
 
+
 @bp.before_app_request
 def before_request():
     if current_user.is_authenticated:
         current_user.last_seen = datetime.utcnow()
         db.session.commit()
-        g.search_form = SearchForm()
+    g.search_form = SearchForm()
     g.locale = str(get_locale())
 
 
@@ -182,16 +183,26 @@ def search():
     #     return redirect(url_for('main.explore'))
 
     page = request.args.get('page', 1, type=int)
-    albums, total = Album.search(g.search_form.q.data, page,
-                                 current_app.config['ALBUMS_PER_PAGE'])
+    per_page = current_app.config['ALBUMS_PER_PAGE']
+    query = g.search_form.q.data
 
-    #if we didnt find smth we redirect to explore page
-    if total.get('value') == 0:
+    pagination = Album.query.filter(Album.title.like(f'%{query}%')).paginate(
+        page=page,
+        per_page=per_page,
+        error_out=False
+    )
+
+    albums = pagination.items
+
+    # if we didn't find anything, we redirect to the explore page
+    if pagination.total == 0:
         return redirect(url_for('main.explore'))
 
-    next_url = url_for('main.search', q=g.search_form.q.data, page=page + 1) \
-        if total.get('value') > page * current_app.config['ALBUMS_PER_PAGE'] else None
-    prev_url = url_for('main.search', q=g.search_form.q.data, page=page - 1) \
-        if page > 1 else None
+    next_url = url_for('main.search', q=query, page=pagination.next_num) \
+        if pagination.has_next else None
+
+    prev_url = url_for('main.search', q=query, page=pagination.prev_num) \
+        if pagination.has_prev else None
+
     return render_template('search.html', title=_('Search'), albums=albums,
                            next_url=next_url, prev_url=prev_url)
